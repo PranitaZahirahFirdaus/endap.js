@@ -6,12 +6,12 @@
 <body>
 <!-- code begins -->
 
-
 <script src="/libs/chartjs/4.5.1/chart.umd.min.js" defer></script>
+
 <script type="importmap">
 {
   "imports": {
-    "endap": "/libs/endap/0.0.3/endap.min.js"
+    "endap": "/libs/endap/0.0.4/endap.min.js"
   }
 }
 </script>
@@ -31,6 +31,50 @@ cnt.append(consoles.el);
 consoles.ver();
 </script>
 
+<pre class="mermaid">
+flowchart
+  %% maps
+  W --"required by"--> P & H
+  P --"produce"--> F
+  H --"need"--> F
+  F --"can contaminate" --> W
+
+  %% elements
+  W(("Water"))
+  P{"Plant"}
+  F["Food"]
+  H(["Human"])
+</pre>
+
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10.9.8/dist/mermaid.esm.min.mjs";
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: "neutral"
+  });
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const element = document.querySelector(".mermaid");
+
+    console.log("ELEMENT:", element);
+    console.log("textContent:", JSON.stringify(element.textContent));
+    console.log("innerHTML:", JSON.stringify(element.innerHTML));
+
+    try {
+      console.log("detectType:",
+        mermaid.detectType(element.textContent)
+      );
+
+      await mermaid.run({
+        nodes: [element]
+      });
+    } catch (error) {
+      console.error("MERMAID ERROR:", error);
+    }
+  });
+</script>
 
 <!-- code ends -->
 </body>
