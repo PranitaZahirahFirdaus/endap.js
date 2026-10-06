@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang=en-us dir=ltr>
+<head>
+  <link rel='stylesheet' href="/assets/css/style.css">
+</head>
+<body>
+<!-- code begins -->
+
+<script src="/libs/chartjs/4.5.1/chart.umd.min.js" defer></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "endap": "/libs/endap/0.0.4/endap.min.js"
+  }
+}
+</script>
+
+
+<div id="cnt4">
+</div>
+
+<script type="module">
+import { Console as CLI } from "endap"
+const consoles = CLI.create("300px");
+
+const cnt = document.getElementById("cnt4");
+cnt.append(consoles.el);
+
+function f(x) {
+  let c0 = 21.3;
+  let c1 = -10.3;
+  let c2 = 1;
+  let y = c0 + c1 * x + c2 * x * x;
+  return y;
+}
+
+const xmin = 0;
+const xmax = 10;
+const dx = 0.2;
+const n = (xmax - xmin) / dx;
+
+for(let i = 0; i <= n; i++) {
+  let x = xmin + i*dx;
+  let y = f(x);
+  
+  consoles.log(x.toFixed(2), "\t");
+  consoles.log(y.toFixed(2));
+}
+</script>
+
+<!-- code ends -->
+</body>
+</html>
