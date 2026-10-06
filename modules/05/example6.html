@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang=en-us dir=ltr>
+<head>
+  <link rel='stylesheet' href="/assets/css/style.css">
+</head>
+<body>
+<!-- code begins -->
+
+<script src="/libs/chartjs/4.5.1/chart.umd.min.js" defer></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "endap": "/libs/endap/0.0.4/endap.min.js"
+  }
+}
+</script>
+
+
+<div id="cnt6">
+</div>
+
+<script type="module">
+const cnt = document.getElementById("cnt6");
+
+import { Console as CLI } from "endap";
+import { RandNum as RNU } from "endap";
+import { Tensor1D as T1D } from "endap";
+
+const w = 200;
+const h = 200;
+const can = document.createElement("canvas");
+can.width = w;
+can.height = h;
+can.style.width = w + "px";
+can.style.height = h + "px";
+cnt.append(can);
+
+const btn1 = document.createElement("button");
+btn1.style.float = "left";
+btn1.style.marginRight = "0.2em";
+btn1.style.width = "50px";
+btn1.innerHTML = "prev"
+cnt.append(btn1);
+btn1.addEventListener("click", () => {
+  k--;
+  if(k > n * n - 1) k = 0;
+  if(k < 0) k = n * n - 1;
+  drawToCanvas();
+});
+
+const btn2 = document.createElement("button");
+btn2.style.float = "left";
+btn2.style.marginRight = "1em";
+btn2.style.width = "50px";
+btn2.innerHTML = "next"
+cnt.append(btn2);
+btn2.addEventListener("click", () => {
+  k++;
+  if(k > n * n - 1) k = 0;
+  if(k < 0) k = n * n - 1;
+  drawToCanvas();
+});
+
+const consoles = CLI.create("100px");
+cnt.append(consoles.el);
+
+const n = 5;
+const xmin = 20;
+const ymin = 20;
+const dx = 40;
+const dy = 40;
+
+const x = T1D.create(n * n);
+const y = T1D.create(n * n);
+let k = 0;
+for(let i = 0; i < n; i++) {
+  for(let j = 0; j < n; j++) {
+    x[k] = xmin + i * dx;
+    y[k] = ymin + j * dy;
+    k++;
+  }
+}
+
+const rmin = 1;
+const rmax = 2;
+const r = RNU.randIntN(rmin, rmax, n * n);
+for(let k = 0; k < n * n; k++) {
+  r[k] = r[k] * 5;
+}
+
+const colors = ["red", "green", "blue", "gray"];
+const cmin = 0;
+const cmax = 3;
+const c = RNU.randIntN(cmin, cmax, n * n);
+
+k = -1;
+function drawToCanvas() {
+  if(k < n * n && k >= 0) {
+    const ctx = can.getContext("2d");
+    ctx.clearRect(0, 0, can.width, can.height);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.strokeStyle = colors[c[k]];
+    ctx.arc(x[k], y[k], r[k], 0, 2 * Math.PI);
+    ctx.stroke();
+    
+    consoles.clear();
+    consoles.log("x", "\t");
+    consoles.log("y", "\t");
+    consoles.log("r", "\t");
+    consoles.log("c");
+    consoles.log(x[k], "\t");
+    consoles.log(y[k], "\t");
+    consoles.log(r[k], "\t");
+    consoles.log(colors[c[k]]);
+  }
+}
+</script>
+
+<!-- code ends -->
+</body>
+</html>

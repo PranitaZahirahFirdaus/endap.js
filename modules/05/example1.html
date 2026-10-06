@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang=en-us dir=ltr>
+<head>
+  <link rel='stylesheet' href="/assets/css/style.css">
+</head>
+<body>
+<!-- code begins -->
+
+<script src="/libs/chartjs/4.5.1/chart.umd.min.js" defer></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "endap": "/libs/endap/0.0.4/endap.min.js"
+  }
+}
+</script>
+
+
+<div id="cnt1">
+</div>
+
+<script type="module">
+const cnt = document.getElementById("cnt1");
+
+import { Console as CLI } from "endap";
+import { RandNum as RNU } from "endap";
+import { Tensor1D as T1D } from "endap";
+
+const w = 200;
+const h = 200;
+const can = document.createElement("canvas");
+can.width = w;
+can.height = h;
+can.style.width = w + "px";
+can.style.height = h + "px";
+cnt.append(can);
+
+const consoles = CLI.create("60px");
+cnt.append(consoles.el);
+
+const n = 5;
+const xmin = 20;
+const ymin = 20;
+const dx = 40;
+const dy = 40;
+
+const x = T1D.create(n * n);
+const y = T1D.create(n * n);
+let k = 0;
+for(let i = 0; i < n; i++) {
+  for(let j = 0; j < n; j++) {
+    x[k] = xmin + i * dx;
+    y[k] = ymin + j * dy;
+    k++;
+  }
+}
+
+const rmin = 1;
+const rmax = 2;
+const r = RNU.randIntN(rmin, rmax, n * n);
+for(let k = 0; k < n * n; k++) {
+  r[k] = r[k] * 5;
+}
+
+consoles.log("x = ", ""); consoles.log(x);
+consoles.log("y = ", ""); consoles.log(y);
+consoles.log("r = ", ""); consoles.log(r);
+
+const ctx = can.getContext("2d");
+ctx.strokeStyle = "red";
+ctx.lineWidth = 2;
+for(let k = 0; k < n * n; k++) {
+  ctx.beginPath();
+  ctx.arc(x[k], y[k], r[k], 0, 2 * Math.PI);
+  ctx.stroke();
+}
+</script>
+
+<!-- code ends -->
+</body>
+</html>

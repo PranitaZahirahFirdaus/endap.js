@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang=en-us dir=ltr>
+<head>
+  <link rel='stylesheet' href="/assets/css/style.css">
+</head>
+<body>
+<!-- code begins -->
+
+<script src="/libs/chartjs/4.5.1/chart.umd.min.js" defer></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "endap": "/libs/endap/0.0.4/endap.min.js"
+  }
+}
+</script>
+
+
+<div id="cnt3">
+</div>
+
+<script type="module">
+const cnt = document.getElementById("cnt3");
+
+import { Console as CLI } from "endap";
+import { RandNum as RNU } from "endap";
+import { Tensor1D as T1D } from "endap";
+
+const w = 200;
+const h = 200;
+const can = document.createElement("canvas");
+can.width = w;
+can.height = h;
+can.style.width = w + "px";
+can.style.height = h + "px";
+cnt.append(can);
+
+const btn = document.createElement("button");
+btn.style.float = "left";
+btn.style.marginRight = "1em";
+btn.style.width = "50px";
+btn.innerHTML = "step"
+cnt.append(btn);
+btn.addEventListener("click", () => { drawToCanvas(); });
+
+const consoles = CLI.create("100px");
+cnt.append(consoles.el);
+
+const n = 5;
+const xmin = 20;
+const ymin = 20;
+const dx = 40;
+const dy = 40;
+
+const x = T1D.create(n * n);
+const y = T1D.create(n * n);
+let k = 0;
+for(let i = 0; i < n; i++) {
+  for(let j = 0; j < n; j++) {
+    x[k] = xmin + i * dx;
+    y[k] = ymin + j * dy;
+    k++;
+  }
+}
+
+const rmin = 1;
+const rmax = 2;
+const r = RNU.randIntN(rmin, rmax, n * n);
+for(let k = 0; k < n * n; k++) {
+  r[k] = r[k] * 5;
+}
+
+const colors = ["red", "green", "blue", "gray"];
+const cmin = 0;
+const cmax = 3;
+const c = RNU.randIntN(cmin, cmax, n * n);
+
+k = 0;
+function drawToCanvas() {
+  if(k == 0) {
+    consoles.log("x", "\t");
+    consoles.log("y", "\t");
+    consoles.log("r", "\t");
+    consoles.log("c");
+  }
+  if(k < n * n) {
+    const ctx = can.getContext("2d");
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.strokeStyle = colors[c[k]];
+    ctx.arc(x[k], y[k], r[k], 0, 2 * Math.PI);
+    ctx.stroke();
+    consoles.log(x[k], "\t");
+    consoles.log(y[k], "\t");
+    consoles.log(r[k], "\t");
+    consoles.log(colors[c[k]]);
+    k++;
+  }
+}
+</script>
+
+<!-- code ends -->
+</body>
+</html>
