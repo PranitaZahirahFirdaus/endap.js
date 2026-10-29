@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerak Parabola</title>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "endap": "../../libs/endap/0.0.4/endap.min.js"
+    }
+  }
+  </script>
+
+ <script src="/libs/chartjs/4.5.1/chart.umd.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    #cnt1 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 300px !important;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Gerak Parabola</h2>
+  <div id="cnt1"></div>
+
+  <script src="./main.js"></script>
+</body>
+</html>
+
