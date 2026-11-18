@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pendulum Simulator</title>
+</head>
+<body>
+
+    <h2>Pendulum Simulator</h2>
+
+    <div id="cnt4"></div>
+
+    <script>
+        const cnt = document.getElementById("cnt4");
+
+    
+cnt.innerHTML = "";
+
+// Canvas
+const canvas = document.createElement("canvas");
+canvas.width = 600;
+canvas.height = 400;
+canvas.style.display = "block";
+canvas.style.maxWidth = "100%";
+canvas.style.border = "1px solid #ccc";
+canvas.style.background = "#fafafa";
+
+const ctx = canvas.getContext("2d");
+
+// Toggle button
+const button = document.createElement("button");
+button.textContent = "start";
+button.style.marginTop = "10px";
+button.style.padding = "8px 24px";
+button.style.cursor = "pointer";
+
+// Add elements
+cnt.appendChild(canvas);
+cnt.appendChild(button);
+
+// Pendulum parameters
+const pivot = {
+    x: canvas.width / 2,
+    y: 50
+};
+
+const length = 220;
+const maxAngle = Math.PI / 4; // 45 degrees
+const gravity = 9.81;
+const omega = Math.sqrt(gravity / (length / 100));
+
+const bobRadius = 18;
+
+// Simulation state
+let running = false;
+let animationId = null;
+
+let startTime = null;
+let elapsedTime = 0;
+let periodCount = 0;
+
+let previousAngle = -maxAngle;
+let currentAngle = -maxAngle;
+
+let lastPeriodAngle = -maxAngle;
+let lastFrameTime = 0;
+
+// Pendulum animation
+function drawPendulum(angle, velocity) {
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Pivot
+    ctx.beginPath();
+    ctx.arc(pivot.x, pivot.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = "#333";
+    ctx.fill();
+
+    // Bob position
+    const bobX = pivot.x + length * Math.sin(angle);
+    const bobY = pivot.y + length * Math.cos(angle);
+
+    // String
+    ctx.beginPath();
+    ctx.moveTo(pivot.x, pivot.y);
+    ctx.lineTo(bobX, bobY);
+    ctx.strokeStyle = "#555";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Velocity-based color
+    const normalizedVelocity = Math.min(
+        1,
+        Math.abs(velocity) / (omega * maxAngle)
+    );
+
+    // Blue (0 velocity) -> Red (maximum velocity)
+    const red = Math.round(255 * normalizedVelocity);
+    const blue = Math.round(255 * (1 - normalizedVelocity));
+
+    const bobColor = `rgb(${red}, 40, ${blue})`;
+
+    // Bob
+    ctx.beginPath();
+    ctx.arc(bobX, bobY, bobRadius, 0, Math.PI * 2);
+    ctx.fillStyle = bobColor;
+    ctx.fill();
+
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Pivot label
+    ctx.fillStyle = "#333";
+    ctx.font = "14px Arial";
+    ctx.fillText("Pivot", pivot.x + 12, pivot.y - 8);
+
+    // Information
+    ctx.fillStyle = "#222";
+    ctx.font = "16px Arial";
+
+    ctx.fillText(
+        `Elapsed time: ${elapsedTime.toFixed(2)} s`,
+        15, 300
+    );
+
+    ctx.fillText(
+        `Completed periods: ${periodCount}`,
+        15, 325
+    );
+
+    ctx.fillText(
+        `Velocity: ${Math.abs(velocity).toFixed(2)} rad/s`,
+        15, 350
+    );
+}
+
+// Animation loop
+function animate(timestamp) {
+
+    if (!running) return;
+
+    if (startTime === null) {
+        startTime = timestamp;
+        lastFrameTime = timestamp;
+    }
+
+    const dt = (timestamp - startTime) / 1000;
+
+    // Small-angle harmonic oscillation
+    // Starts at the leftmost position.
+    currentAngle = maxAngle * Math.cos(omega * dt + Math.PI);
+
+    // Angular velocity
+    const velocity =
+        -maxAngle * omega * Math.sin(omega * dt + Math.PI);
+
+    // Elapsed time
+    elapsedTime = dt;
+
+    // Count complete periods
+    const currentPhase = omega * dt;
+
+    const newPeriodCount = Math.floor(
+        currentPhase / (2 * Math.PI)
+    );
+
+    periodCount = newPeriodCount;
+
+    drawPendulum(currentAngle, velocity);
+
+    lastFrameTime = timestamp;
+
+    animationId = requestAnimationFrame(animate);
+}
+
+// Start / Stop button
+button.addEventListener("click", () => {
+
+    if (!running) {
+
+        running = true;
+        button.textContent = "stop";
+
+        // Continue from the current elapsed time
+        startTime = null;
+
+        const savedElapsed = elapsedTime;
+
+        const originalAnimate = animate;
+
+        function resumeAnimation(timestamp) {
+
+            if (!running) return;
+
+            if (startTime === null) {
+                startTime = timestamp - savedElapsed * 1000;
+            }
+
+            originalAnimate(timestamp);
+        }
+
+        animationId = requestAnimationFrame(resumeAnimation);
+
+    } else {
+
+        running = false;
+        button.textContent = "start";
+
+        cancelAnimationFrame(animationId);
+    }
+});
+
+// Initial drawing
+drawPendulum(-maxAngle, 0);
+    </script>
+
+</body>
+</html>
