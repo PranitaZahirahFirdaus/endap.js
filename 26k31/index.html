@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Example 1 - Circle Motion</title>
+</head>
+<body>
+
+    <h2>Example 1 - Circle Motion</h2>
+
+    <div id="cnt"></div>
+
+    <script>
+        // Get parent element
+        const cnt = document.getElementById("cnt");
+
+        // Create canvas
+        const canvas = document.createElement("canvas");
+        canvas.width = 200;
+        canvas.height = 200;
+        canvas.style.border = "1px solid black";
+
+        // Create button
+        const button = document.createElement("button");
+        button.textContent = "start";
+
+        // Append elements to parent
+        cnt.appendChild(canvas);
+        cnt.appendChild(button);
+
+        // Canvas context
+        const ctx = canvas.getContext("2d");
+
+        // Circle properties
+        const circle = {
+            x: 100,
+            y: 50,
+            radius: 10,
+            dx: 2,
+            dy: 2
+        };
+
+        let running = false;
+        let animationId;
+
+        // Draw circle
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.beginPath();
+            ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+            ctx.fillStyle = "blue";
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Update circle position
+        function update() {
+            circle.x += circle.dx;
+            circle.y += circle.dy;
+
+            // Bounce horizontally
+            if (
+                circle.x + circle.radius >= canvas.width ||
+                circle.x - circle.radius <= 0
+            ) {
+                circle.dx *= -1;
+            }
+
+            // Bounce vertically
+            if (
+                circle.y + circle.radius >= canvas.height ||
+                circle.y - circle.radius <= 0
+            ) {
+                circle.dy *= -1;
+            }
+        }
+
+        // Animation loop
+        function animate() {
+            if (!running) return;
+
+            update();
+            draw();
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Toggle button
+        button.addEventListener("click", () => {
+            running = !running;
+
+            if (running) {
+                button.textContent = "stop";
+                animate();
+            } else {
+                button.textContent = "start";
+                cancelAnimationFrame(animationId);
+            }
+        });
+
+        // Initial drawing
+        draw();
+    </script>
+
+</body>
+</html>
