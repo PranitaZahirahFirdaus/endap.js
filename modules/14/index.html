@@ -1,0 +1,233 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring-Mass Oscillation Simulation</title>
+</head>
+<body>
+    <h2>Spring-Mass Oscillation Simulation</h2>
+
+    <p>Drag the blue bob in any direction, then release it to observe its motion.</p>
+
+    <div id="cnt"></div>
+
+    <script>
+        const cnt = document.getElementById("cnt");
+
+    (() => {
+    // Configuration
+    const W = 600;
+    const H = 500;
+
+    const gravity = 980;       // px/s²
+    const springK = 18;        // Spring stiffness
+    const damping = 0.8;       // Air resistance
+    const restLength = 150;    // Spring natural length
+    const mass = 1;
+
+    // Create SVG
+    const svg = document.createElementNS(
+        "http://www.w3.org/2000/svg", "svg"
+    );
+
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.style.width = "100%";
+    svg.style.maxWidth = W + "px";
+    svg.style.display = "block";
+    svg.style.touchAction = "none";
+    svg.style.background = "#f8fafc";
+
+    cnt.appendChild(svg);
+
+    const NS = "http://www.w3.org/2000/svg";
+
+    function createElement(name, attrs) {
+        const el = document.createElementNS(NS, name);
+
+        for (const key in attrs) {
+            el.setAttribute(key, attrs[key]);
+        }
+
+        svg.appendChild(el);
+        return el;
+    }
+
+    // Fixed suspension point
+    const anchor = {
+        x: W / 2,
+        y: 70
+    };
+
+    // Spring
+    const spring = createElement("polyline", {
+        fill: "none",
+        stroke: "#64748b",
+        "stroke-width": 3,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+    });
+
+    // Bob
+    const bob = createElement("circle", {
+        cx: anchor.x,
+        cy: anchor.y + restLength,
+        r: 18,
+        fill: "#2563eb",
+        stroke: "#1e40af",
+        "stroke-width": 2,
+        cursor: "grab"
+    });
+
+    // Physics state
+    const state = {
+        x: anchor.x,
+        y: anchor.y + restLength,
+        vx: 0,
+        vy: 0
+    };
+
+    let dragging = false;
+    let lastTime = 0;
+
+    // Generate spring geometry
+    function updateSpring() {
+        const dx = state.x - anchor.x;
+        const dy = state.y - anchor.y;
+
+        const length = Math.hypot(dx, dy);
+        const ux = dx / length;
+        const uy = dy / length;
+
+        // Perpendicular direction
+        const px = -uy;
+        const py = ux;
+
+        const coils = 14;
+        const amplitude = 8;
+
+        const points = [
+            `${anchor.x},${anchor.y}`
+        ];
+
+        const segments = coils * 2;
+
+        for (let i = 1; i < segments; i++) {
+            const t = i / segments;
+
+            const offset = (i % 2 === 0 ? -1 : 1) * amplitude;
+
+            const x = anchor.x + ux * length * t + px * offset;
+            const y = anchor.y + uy * length * t + py * offset;
+
+            points.push(`${x},${y}`);
+        }
+
+        points.push(`${state.x},${state.y}`);
+
+        spring.setAttribute("points", points.join(" "));
+        bob.setAttribute("cx", state.x);
+        bob.setAttribute("cy", state.y);
+    }
+
+    // Calculate acceleration using Hooke's law and gravity
+    function physics(dt) {
+        const dx = state.x - anchor.x;
+        const dy = state.y - anchor.y;
+
+        const length = Math.hypot(dx, dy);
+
+        if (length < 0.001) return;
+
+        // Spring force: F = -k * (length - restLength)
+        const extension = length - restLength;
+
+        const force = -springK * extension;
+
+        const fx = force * dx / length;
+        const fy = force * dy / length;
+
+        // Gravity + spring force + damping
+        const ax = fx / mass - damping * state.vx / mass;
+        const ay = gravity + fy / mass
+            - damping * state.vy / mass;
+
+        // Semi-implicit Euler integration
+        state.vx += ax * dt;
+        state.vy += ay * dt;
+
+        state.x += state.vx * dt;
+        state.y += state.vy * dt;
+    }
+
+    // Convert pointer coordinates to SVG coordinates
+    function pointerPosition(event) {
+        const p = svg.createSVGPoint();
+
+        p.x = event.clientX;
+        p.y = event.clientY;
+
+        return p.matrixTransform(
+            svg.getScreenCTM().inverse()
+        );
+    }
+
+    // Drag events
+    bob.addEventListener("pointerdown", event => {
+        dragging = true;
+
+        bob.setPointerCapture(event.pointerId);
+        bob.style.cursor = "grabbing";
+
+        state.vx = 0;
+        state.vy = 0;
+    });
+
+    bob.addEventListener("pointermove", event => {
+        if (!dragging) return;
+
+        const p = pointerPosition(event);
+
+        state.x = p.x;
+        state.y = p.y;
+
+        state.vx = 0;
+        state.vy = 0;
+
+        updateSpring();
+    });
+
+    function releaseBob() {
+        dragging = false;
+        bob.style.cursor = "grab";
+    }
+
+    bob.addEventListener("pointerup", releaseBob);
+    bob.addEventListener("pointercancel", releaseBob);
+
+    // Animation loop
+    function animate(time) {
+        if (!lastTime) lastTime = time;
+
+        // Limit timestep for numerical stability
+        const dt = Math.min((time - lastTime) / 1000, 0.02);
+
+        lastTime = time;
+
+        if (!dragging) {
+            physics(dt);
+        }
+
+        updateSpring();
+
+        requestAnimationFrame(animate);
+    }
+
+    updateSpring();
+    requestAnimationFrame(animate);
+
+})();
+    </script>
+</body>
+</html>
