@@ -1,0 +1,541 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aquarium Physics Simulation</title>
+</head>
+<body>
+
+    <h2>Aquarium Physics Simulation</h2>
+
+    <div id="cnt"></div>
+
+    <script>
+        const cnt = document.getElementById("cnt");
+
+    // Parent container: cnt
+(() => {
+    const app = document.createElement("div");
+
+    app.style.cssText = `
+        font-family: Arial, sans-serif;
+        max-width: 750px;
+        padding: 15px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        background: #f8fafc;
+        color: #222;
+    `;
+
+    app.innerHTML = `
+        <h3 style="margin-top:0">Aquarium Physics Simulation</h3>
+
+        <canvas id="aquariumCanvas"
+            style="width:100%; background:#eaf6ff;
+            border:1px solid #777; border-radius:5px;">
+        </canvas>
+
+        <div style="margin-top:15px">
+
+            <label>
+                Initial Ball Position:
+                <span id="positionValue">15%</span>
+            </label>
+            <input id="positionSlider" type="range"
+                min="5" max="90" value="15"
+                style="width:100%">
+
+            <label>
+                Water Level:
+                <span id="waterValue">60%</span>
+            </label>
+            <input id="waterSlider" type="range"
+                min="0" max="100" value="60"
+                style="width:100%">
+
+            <label>
+                Ball Density:
+                <span id="densityValue">1200</span> kg/m³
+            </label>
+            <input id="densitySlider" type="range"
+                min="300" max="1800" value="1200"
+                step="50"
+                style="width:100%">
+
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:15px">
+
+            <button id="releaseBtn"
+                style="flex:1; padding:10px;
+                background:#2563eb; color:white;
+                border:0; border-radius:5px;
+                cursor:pointer">
+                Release Ball
+            </button>
+
+            <button id="resetBtn"
+                style="flex:1; padding:10px;
+                background:#64748b; color:white;
+                border:0; border-radius:5px;
+                cursor:pointer">
+                Reset
+            </button>
+
+        </div>
+
+        <div id="simulationInfo"
+            style="margin-top:12px; font-size:13px">
+            Status: Ready
+        </div>
+    `;
+
+    cnt.appendChild(app);
+
+    // =====================================
+    // ELEMENTS
+    // =====================================
+
+    const canvas = app.querySelector("#aquariumCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const positionSlider = app.querySelector("#positionSlider");
+    const waterSlider = app.querySelector("#waterSlider");
+    const densitySlider = app.querySelector("#densitySlider");
+
+    const positionValue = app.querySelector("#positionValue");
+    const waterValue = app.querySelector("#waterValue");
+    const densityValue = app.querySelector("#densityValue");
+
+    const releaseBtn = app.querySelector("#releaseBtn");
+    const resetBtn = app.querySelector("#resetBtn");
+    const info = app.querySelector("#simulationInfo");
+
+    // Canvas dimensions
+    const W = 720;
+    const H = 420;
+
+    canvas.width = W;
+    canvas.height = H;
+
+    // =====================================
+    // AQUARIUM PARAMETERS
+    // =====================================
+
+    const tank = {
+        x: 110,
+        y: 35,
+        width: 500,
+        height: 345
+    };
+
+    const radius = 17;
+
+    // Physical parameters
+    const gravity = 500;          // pixels/s²
+    const waterDensity = 1000;    // kg/m³
+    const viscosity = 8;          // simplified drag coefficient
+
+    // Ball state
+    let ball = {
+        x: W / 2,
+        y: 90,
+        vy: 0
+    };
+
+    let running = false;
+    let animationId = null;
+    let previousTime = 0;
+
+    // =====================================
+    // CONTROL VALUES
+    // =====================================
+
+    function getWaterY() {
+        const level = Number(waterSlider.value) / 100;
+
+        return tank.y + tank.height * (1 - level);
+    }
+
+    function getBallDensity() {
+        return Number(densitySlider.value);
+    }
+
+    function getInitialY() {
+        const p = Number(positionSlider.value) / 100;
+
+        return tank.y + p * tank.height;
+    }
+
+    function updateLabels() {
+        positionValue.textContent = positionSlider.value + "%";
+        waterValue.textContent = waterSlider.value + "%";
+        densityValue.textContent = densitySlider.value;
+    }
+
+    // =====================================
+    // DRAW AQUARIUM
+    // =====================================
+
+    function drawAquarium() {
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Background
+        ctx.fillStyle = "#eaf6ff";
+        ctx.fillRect(0, 0, W, H);
+
+        // Aquarium glass
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = 5;
+
+        ctx.strokeRect(
+            tank.x,
+            tank.y,
+            tank.width,
+            tank.height
+        );
+
+        const waterY = getWaterY();
+
+        // Water
+        ctx.fillStyle = "rgba(30, 144, 255, 0.35)";
+
+        ctx.fillRect(
+            tank.x + 3,
+            waterY,
+            tank.width - 6,
+            tank.y + tank.height - waterY - 3
+        );
+
+        // Water surface
+        ctx.strokeStyle = "#0284c7";
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.moveTo(tank.x, waterY);
+        ctx.lineTo(tank.x + tank.width, waterY);
+        ctx.stroke();
+
+        // Ball
+        ctx.beginPath();
+
+        ctx.arc(
+            ball.x,
+            ball.y,
+            radius,
+            0,
+            Math.PI * 2
+        );
+
+        const gradient = ctx.createRadialGradient(
+            ball.x - 6,
+            ball.y - 7,
+            2,
+            ball.x,
+            ball.y,
+            radius
+        );
+
+        gradient.addColorStop(0, "#fef08a");
+        gradient.addColorStop(1, "#e11d48");
+
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.strokeStyle = "#9f1239";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Density information
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 15px Arial";
+
+        ctx.fillText(
+            "Water Density: " + waterDensity + " kg/m³",
+            15, 25
+        );
+
+        ctx.fillText(
+            "Ball Density: " + getBallDensity() + " kg/m³",
+            15, 48
+        );
+
+        // Gravity indicator
+        ctx.fillStyle = "#dc2626";
+        ctx.font = "13px Arial";
+
+        ctx.fillText(
+            "Gravity ↓",
+            tank.x + tank.width + 12,
+            tank.y + 25
+        );
+
+        // Ball position information
+        ctx.fillStyle = "#334155";
+        ctx.font = "12px Arial";
+
+        ctx.fillText(
+            "Aquarium",
+            tank.x + tank.width / 2 - 28,
+            H - 15
+        );
+    }
+
+    // =====================================
+    // PHYSICS SIMULATION
+    // =====================================
+
+    function simulate(dt) {
+
+        const waterY = getWaterY();
+        const ballDensity = getBallDensity();
+
+        // Ball mass is proportional to its density.
+        // Volume is normalized to 1.
+        const mass = ballDensity / waterDensity;
+
+        // Determine submerged fraction.
+        const submergedDepth =
+            ball.y + radius - waterY;
+
+        const submergedFraction = Math.max(
+            0,
+            Math.min(1, submergedDepth / (radius * 2))
+        );
+
+        // Gravitational acceleration
+        const gravityAcceleration = gravity;
+
+        // Buoyancy acceleration
+        // Archimedes' principle:
+        // Buoyant force = water density * g * displaced volume
+
+        const buoyancyAcceleration =
+            gravity *
+            (waterDensity / ballDensity) *
+            submergedFraction;
+
+        // Viscous drag.
+        // Drag opposes the direction of movement.
+        // Drag increases with velocity.
+
+        let dragAcceleration = 0;
+
+        if (submergedFraction > 0) {
+
+            dragAcceleration =
+                -viscosity *
+                submergedFraction *
+                ball.vy /
+                mass;
+        }
+
+        // Net acceleration
+        const acceleration =
+            gravityAcceleration -
+            buoyancyAcceleration +
+            dragAcceleration;
+
+        // Integrate velocity
+        ball.vy += acceleration * dt;
+
+        // Integrate position
+        ball.y += ball.vy * dt;
+
+        // Aquarium bottom collision
+        const bottom = tank.y + tank.height - radius;
+
+        if (ball.y > bottom) {
+            ball.y = bottom;
+            ball.vy = 0;
+        }
+
+        // Aquarium ceiling collision
+        const top = tank.y + radius;
+
+        if (ball.y < top) {
+            ball.y = top;
+            ball.vy = 0;
+        }
+
+        // Stop when the ball reaches equilibrium.
+        // This avoids unnecessary animation.
+        if (
+            Math.abs(ball.vy) < 0.1 &&
+            Math.abs(acceleration) < 0.5
+        ) {
+            ball.vy = 0;
+        }
+
+        // Update information
+        let status = "Falling";
+
+        if (submergedFraction > 0 && ball.vy > 0) {
+            status = "Sinking in water";
+        }
+
+        if (submergedFraction > 0 && ball.vy < 0) {
+            status = "Rising due to buoyancy";
+        }
+
+        if (Math.abs(ball.vy) < 0.1) {
+            status = "Equilibrium / Resting";
+        }
+
+        info.textContent =
+            "Status: " + status +
+            " | Velocity: " + ball.vy.toFixed(2) + " px/s" +
+            " | Submerged: " +
+            (submergedFraction * 100).toFixed(1) + "%";
+    }
+
+    // =====================================
+    // ANIMATION LOOP
+    // =====================================
+
+    function animate(time) {
+
+        if (!running) return;
+
+        if (!previousTime) previousTime = time;
+
+        let dt = (time - previousTime) / 1000;
+
+        previousTime = time;
+
+        // Prevent excessively large time steps
+        dt = Math.min(dt, 0.03);
+
+        // Substeps improve simulation stability
+        const steps = 4;
+        const subDt = dt / steps;
+
+        for (let i = 0; i < steps; i++) {
+            simulate(subDt);
+        }
+
+        drawAquarium();
+
+        // Stop if the ball is stationary
+        if (Math.abs(ball.vy) < 0.1) {
+
+            const waterY = getWaterY();
+
+            const submerged =
+                ball.y + radius > waterY;
+
+            const acceleration =
+                gravity -
+                gravity *
+                (waterDensity / getBallDensity()) *
+                Math.max(
+                    0,
+                    Math.min(
+                        1,
+                        (ball.y + radius - waterY) /
+                        (radius * 2)
+                    )
+                );
+
+            if (
+                Math.abs(acceleration) < 0.5 ||
+                ball.y >= tank.y + tank.height - radius
+            ) {
+                running = false;
+                info.textContent = "Status: Simulation stopped";
+                return;
+            }
+        }
+
+        animationId = requestAnimationFrame(animate);
+    }
+
+    // =====================================
+    // RELEASE BALL
+    // =====================================
+
+    releaseBtn.addEventListener("click", () => {
+
+        if (running) return;
+
+        running = true;
+        previousTime = 0;
+
+        info.textContent = "Status: Ball released";
+
+        animationId = requestAnimationFrame(animate);
+    });
+
+    // =====================================
+    // RESET
+    // =====================================
+
+    function reset() {
+
+        running = false;
+
+        cancelAnimationFrame(animationId);
+
+        ball.x = W / 2;
+        ball.y = getInitialY();
+        ball.vy = 0;
+
+        updateLabels();
+        drawAquarium();
+
+        info.textContent = "Status: Ready";
+    }
+
+    resetBtn.addEventListener("click", () => {
+
+        positionSlider.value = 15;
+        waterSlider.value = 60;
+        densitySlider.value = 1200;
+
+        reset();
+    });
+
+    // =====================================
+    // SLIDER EVENTS
+    // =====================================
+
+    positionSlider.addEventListener("input", () => {
+
+        updateLabels();
+
+        if (!running) {
+            ball.y = getInitialY();
+            ball.vy = 0;
+            drawAquarium();
+        }
+    });
+
+    waterSlider.addEventListener("input", () => {
+
+        updateLabels();
+        drawAquarium();
+    });
+
+    densitySlider.addEventListener("input", () => {
+
+        updateLabels();
+        drawAquarium();
+    });
+
+    // =====================================
+    // INITIALIZE
+    // =====================================
+
+    ball.y = getInitialY();
+
+    updateLabels();
+    drawAquarium();
+
+})();
+    </script>
+
+</body>
+</html>
