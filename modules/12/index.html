@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Level Simulator</title>
+</head>
+<body>
+
+    <h2>Water Level Simulator</h2>
+
+    <div id="cnt"></div>
+
+    <script>
+        const cnt = document.getElementById("cnt");
+
+    function createWaterApp(cnt) {
+    // Container styling
+    cnt.style.display = "flex";
+    cnt.style.alignItems = "center";
+    cnt.style.justifyContent = "center";
+    cnt.style.gap = "20px";
+    cnt.style.padding = "20px";
+    cnt.style.background = "#f1f5f9";
+    cnt.style.borderRadius = "12px";
+
+    // Canvas
+    const canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 350;
+    canvas.style.maxWidth = "100%";
+
+    const ctx = canvas.getContext("2d");
+
+    // Vertical range slider
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.min = "10";
+    slider.max = "90";
+    slider.value = "50";
+
+    slider.style.width = "180px";
+    slider.style.height = "20px";
+    slider.style.transform = "rotate(-90deg)";
+    slider.style.cursor = "pointer";
+    slider.style.accentColor = "#0284c7";
+
+    cnt.appendChild(canvas);
+    cnt.appendChild(slider);
+
+    // Water container dimensions
+    const container = {
+        x: 70,
+        y: 40,
+        width: 260,
+        height: 270
+    };
+
+    // Floating box dimensions
+    const box = {
+        width: 65,
+        height: 45
+    };
+
+    function draw() {
+        const waterLevel = Number(slider.value) / 100;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const { x, y, width, height } = container;
+
+        // Calculate water surface position
+        const waterY = y + height * (1 - waterLevel);
+
+        // Draw water
+        ctx.save();
+
+        ctx.beginPath();
+        ctx.rect(x, y, width, height);
+        ctx.clip();
+
+        // Water body
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillRect(
+            x,
+            waterY,
+            width,
+            y + height - waterY
+        );
+
+        // Water surface
+        ctx.beginPath();
+        ctx.moveTo(x, waterY);
+        ctx.lineTo(x + width, waterY);
+        ctx.strokeStyle = "#0284c7";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Water surface highlight
+        ctx.beginPath();
+        ctx.moveTo(x + 10, waterY + 8);
+        ctx.lineTo(x + width - 10, waterY + 8);
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
+
+        // Draw container outline
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y + height);
+        ctx.lineTo(x + width, y + height);
+        ctx.lineTo(x + width, y);
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = 5;
+        ctx.lineJoin = "round";
+        ctx.stroke();
+
+        // Draw floating box
+        const boxX = x + (width - box.width) / 2;
+        const boxY = waterY - box.height;
+
+        ctx.fillStyle = "#f59e0b";
+        ctx.fillRect(
+            boxX,
+            boxY,
+            box.width,
+            box.height
+        );
+
+        // Box outline
+        ctx.strokeStyle = "#92400e";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+            boxX,
+            boxY,
+            box.width,
+            box.height
+        );
+
+        // Box label
+        ctx.fillStyle = "#451a03";
+        ctx.font = "bold 13px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        ctx.fillText(
+            "BOX",
+            boxX + box.width / 2,
+            boxY + box.height / 2
+        );
+
+        // Water level label
+        ctx.fillStyle = "#334155";
+        ctx.font = "14px Arial";
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            `Water Level: ${slider.value}%`,
+            canvas.width / 2,
+            330
+        );
+    }
+
+    // Update canvas whenever slider changes
+    slider.addEventListener("input", draw);
+
+    // Initial rendering
+    draw();
+}
+
+// Initialize app
+createWaterApp(cnt);
+    </script>
+
+</body>
+</html>
