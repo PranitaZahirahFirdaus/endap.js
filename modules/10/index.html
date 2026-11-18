@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Traveling Wave Simulator</title>
+</head>
+<body>
+
+    <h2>Traveling Sinusoidal Wave Simulator</h2>
+
+    <div id="cnt3"></div>
+
+    <script>
+     const cnt = document.getElementById("cnt3");
+
+function createWaveSimulator(cnt) {
+    // ============================
+    // 1. Create UI elements
+    // ============================
+
+    cnt.innerHTML = "";
+
+    cnt.style.display = "flex";
+    cnt.style.flexDirection = "column";
+    cnt.style.gap = "10px";
+    cnt.style.maxWidth = "800px";
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 700;
+    canvas.height = 300;
+    canvas.style.width = "100%";
+    canvas.style.border = "1px solid #ccc";
+    canvas.style.background = "#fff";
+
+    const textarea = document.createElement("textarea");
+    textarea.rows = 5;
+    textarea.style.width = "100%";
+    textarea.style.boxSizing = "border-box";
+    textarea.style.fontFamily = "monospace";
+
+    textarea.value =
+`amplitude = 50
+period = 4
+wavelength = 200
+phase = 0`;
+
+    const button = document.createElement("button");
+    button.textContent = "start";
+    button.style.width = "100px";
+    button.style.padding = "8px";
+
+    cnt.appendChild(canvas);
+    cnt.appendChild(textarea);
+    cnt.appendChild(button);
+
+    const ctx = canvas.getContext("2d");
+
+    // ============================
+    // 2. Wave parameters
+    // ============================
+
+    let params = {
+        amplitude: 50,
+        period: 4,
+        wavelength: 200,
+        phase: 0
+    };
+
+    let running = false;
+    let animationId = null;
+    let startTime = 0;
+
+    // ============================
+    // 3. Read parameters
+    // ============================
+
+    function readParameters() {
+        const lines = textarea.value.split("\n");
+
+        const newParams = {};
+
+        lines.forEach(line => {
+            const parts = line.split("=");
+
+            if (parts.length !== 2) return;
+
+            const key = parts[0].trim().toLowerCase();
+            const value = parseFloat(parts[1]);
+
+            if (!Number.isFinite(value)) return;
+
+            if (key === "amplitude")
+                newParams.amplitude = value;
+
+            if (key === "period")
+                newParams.period = value;
+
+            if (key === "wavelength")
+                newParams.wavelength = value;
+
+            if (key === "phase")
+                newParams.phase = value;
+        });
+
+        params = {
+            ...params,
+            ...newParams
+        };
+
+        // Avoid division by zero
+        params.period = Math.max(0.001, params.period);
+        params.wavelength = Math.max(0.001, params.wavelength);
+    }
+
+    // ============================
+    // 4. Draw coordinate system
+    // ============================
+
+    function drawAxes() {
+        const w = canvas.width;
+        const h = canvas.height;
+
+        const centerY = h / 2;
+
+        ctx.clearRect(0, 0, w, h);
+
+        // Horizontal axis
+        ctx.beginPath();
+        ctx.strokeStyle = "#aaa";
+        ctx.lineWidth = 1;
+        ctx.moveTo(0, centerY);
+        ctx.lineTo(w, centerY);
+        ctx.stroke();
+
+        // Vertical axis
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, h);
+        ctx.stroke();
+
+        // Center line
+        ctx.fillStyle = "#555";
+        ctx.font = "12px Arial";
+        ctx.fillText("y = 0", 5, centerY - 8);
+    }
+
+    // ============================
+    // 5. Draw traveling wave
+    // ============================
+
+    function drawWave(time) {
+        readParameters();
+
+        drawAxes();
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        const centerY = h / 2;
+
+        const A = params.amplitude;
+        const T = params.period;
+        const lambda = params.wavelength;
+        const phase = params.phase;
+
+        const omega = 2 * Math.PI / T;
+        const k = 2 * Math.PI / lambda;
+
+        ctx.beginPath();
+        ctx.strokeStyle = "#007bff";
+        ctx.lineWidth = 2.5;
+
+        for (let x = 0; x < w; x++) {
+
+            // Traveling sinusoidal wave:
+            // y(x,t) = A sin(kx - omega*t + phase)
+
+            const y = A * Math.sin(
+                k * x - omega * time + phase
+            );
+
+            const canvasY = centerY - y;
+
+            if (x === 0) {
+                ctx.moveTo(x, canvasY);
+            } else {
+                ctx.lineTo(x, canvasY);
+            }
+        }
+
+        ctx.stroke();
+
+        // Display information
+        ctx.fillStyle = "#333";
+        ctx.font = "13px Arial";
+
+        ctx.fillText(
+            `Amplitude: ${A} | Period: ${T} s | Wavelength: ${lambda} px`,
+            10,
+            20
+        );
+    }
+
+    // ============================
+    // 6. Animation loop
+    // ============================
+
+    function animate(timestamp) {
+        if (!running) return;
+
+        const elapsed = (timestamp - startTime) / 1000;
+
+        drawWave(elapsed);
+
+        animationId = requestAnimationFrame(animate);
+    }
+
+    // ============================
+    // 7. Start / Stop button
+    // ============================
+
+    button.addEventListener("click", () => {
+
+        if (!running) {
+
+            // START
+            running = true;
+            button.textContent = "stop";
+
+            readParameters();
+
+            startTime = performance.now();
+
+            animationId = requestAnimationFrame(animate);
+
+        } else {
+
+            // STOP
+            running = false;
+            button.textContent = "start";
+
+            cancelAnimationFrame(animationId);
+        }
+    });
+
+    // ============================
+    // 8. Update parameters
+    // ============================
+
+    textarea.addEventListener("input", () => {
+        if (!running) {
+            drawWave(0);
+        }
+    });
+
+    // Initial drawing
+    drawWave(0);
+
+    // Return public interface
+    return {
+        start: () => button.click(),
+        stop: () => {
+            if (running) button.click();
+        },
+        redraw: () => drawWave(0)
+    };
+}
+
+const simulator = createWaveSimulator(cnt);
+    </script>
+
+</body>
+</html>
